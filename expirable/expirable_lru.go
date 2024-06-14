@@ -161,6 +161,19 @@ func (c *LRU[K, V]) Get(key K) (value V, ok bool) {
 	return
 }
 
+// Get looks up a key's value from the cache and updates it ttl.
+func (c *LRU[K, V]) GetAndUpdateTtl(key K) (value V, ok bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	var ent *internal.Entry[K, V]
+	if ent, ok = c.items[key]; ok {
+		ent.ExpiresAt = time.Now().Add(c.ttl)
+		c.evictList.MoveToFront(ent)
+		return ent.Value, true
+	}
+	return
+}
+
 // Contains checks if a key is in the cache, without updating the recent-ness
 // or deleting it for being stale.
 func (c *LRU[K, V]) Contains(key K) (ok bool) {
